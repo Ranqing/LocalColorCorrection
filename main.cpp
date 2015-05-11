@@ -82,10 +82,17 @@ int main(int argc, char * argv[])
 	cout << out_labelsFn << endl << out_segmentsFn << endl << out_contoursFn << endl << out_correspondFn << endl << out_correspondConFn << endl;
 #endif
 	
-	Mat srcResultImg;
-	LocalColorCorrection(srcImg, srcVis, labels, refImg, refVis, refLabels, regionum, srcResultImg );	
+	Mat srcResult;
+	LocalColorCorrection(srcImg, srcVis, labels, refImg, refVis, refLabels, regionum, srcResult );	
 	string correctFn = folder + "/local_correct_" + srcFn + ".png";
-	imwrite(correctFn, srcResultImg);
+	imwrite(correctFn, srcResult);
 	cout << "save " << correctFn << endl;
 	cout << endl << "local color correction done." << endl;
+
+	Mat srcWeightedResult;
+	WeightedLocalColorCorrection(srcImg, srcVis, labels, refImg, refVis, refLabels, regionum, srcWeightedResult );
+	correctFn = folder + "/local_weighted_correct_" + srcFn + ".png";
+	imwrite(correctFn, srcWeightedResult);
+	cout << "save " << correctFn << endl;
+	cout << endl  << "local weighted color correction done." << endl;
 }

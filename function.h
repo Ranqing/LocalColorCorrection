@@ -22,9 +22,13 @@ void calPointsTab(const vector<int>& labels, const Mat& visibility, vector<vecto
 
 //compute mean color of each region
 void computeMeans(const Mat& img, const vector<vector<Point2f>>& pointsTab, vector<Scalar>& means);
+void computeMeanStddev(const Mat& img, const vector<vector<Point2f>>& pointsTab, vector<Scalar>& means, vector<Scalar>& stddevs );
+void saveMeansStddvs(const string& fn , const vector<Scalar>& means, const vector<Scalar>& stddvs);
 
 void pointsToMask(const vector<Point2f>& points, Mat& mask);
 void pointsToMask(const vector<Point2f>& points, const Mat& visibility, Mat& mask);
+
+void maskToPoints(const Mat& mask, vector<Point2f>& points);
 
 void OutlierRemoval(vector<Point2i>& srcFeatures, vector<Point2i>& refFeatures, string dispFn = NULL);
 
@@ -35,4 +39,7 @@ void BackProjectToSource(const vector<int>& refLabels, const Mat& srcImg, const 
 
 void saveRegionCorrespondence(Mat refImg, Mat srcImg, Mat refVis, Mat srcVis, vector<int> refLabels, vector<int> srcLabels, int regionum, string out_labelsFn, string out_segmentsFn, string out_contoursFn, string out_correspondFn, string out_correspondConFn);
 
+void correct(const Mat& src, const Mat& msk, const cv::Scalar& srcMean, const cv::Scalar& srcStddev, const cv::Scalar& refMean, const cv::Scalar& refStddev, Mat& srcResult);
 void LocalColorCorrection(const Mat& src, const Mat& srcVis, const vector<int>& srclabels, const Mat& ref, const Mat& refVis, const vector<int>& reflabels, const int& regionum, Mat& srcResult );	
+
+void WeightedLocalColorCorrection(const Mat& src, const Mat& srcVis, const vector<int>& srclabels, const Mat& ref, const Mat& refVis, const vector<int>& reflabels, const int& regionum, Mat& srcResult);

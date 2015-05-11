@@ -356,6 +356,23 @@ void pointsToMask(const vector<Point2f>& points, const Mat& visibility, Mat& mas
 	}
 }
 
+//Mask中的有效像素
+void maskToPoints(const Mat& mask, vector<Point2f>& points)
+{
+	int height = mask.size().height;
+	int width = mask.size().width;
+	for (int y = 0; y < height; ++y)
+	{
+		for (int x = 0; x < width; ++x)
+		{
+			if (mask.at<uchar>(y,x) == 255)
+			{
+				points.push_back(Point2f(x,y));
+			}			
+		}
+	}
+}
+
 void calPointsTab(const vector<int>& labels, const Mat& visibility, vector<vector<Point2f>>& pointsTab)
 {
 	int width = visibility.size().width;

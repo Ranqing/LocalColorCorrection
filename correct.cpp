@@ -62,8 +62,8 @@ void correct(const Mat& src, const Mat& msk, const cv::Scalar& srcMean, const cv
 				continue;
 
 			double transferL = refMean.val[0] + Lfactor * (src.at<Vec3b>(y,x)[0] - srcMean.val[0]);
-			double transferA = refMean.val[1] + Lfactor * (src.at<Vec3b>(y,x)[1] - srcMean.val[1]);
-			double transferB = refMean.val[2] + Lfactor * (src.at<Vec3b>(y,x)[2] - srcMean.val[2]);
+			double transferA = refMean.val[1] + Afactor * (src.at<Vec3b>(y,x)[1] - srcMean.val[1]);
+			double transferB = refMean.val[2] + Bfactor * (src.at<Vec3b>(y,x)[2] - srcMean.val[2]);
 
 			transferL = min(max(0.0, transferL), 255.0);
 			transferA = min(max(0.0, transferA), 255.0);
@@ -115,38 +115,35 @@ void LocalColorCorrection(const Mat& src, const Mat& srcVis, const vector<int>& 
 	computeMeanStddev(srcLab, srcVisPointsTab, srcMeans, srcStddevs );
 	computeMeanStddev(refLab, refVisPointsTab, refMeans, refStddevs );
 
-	/*string tmpfn ;
+	string tmpfn ;
 	tmpfn = "src_means_stddvs.txt";
 	saveMeansStddvs(tmpfn, srcMeans, srcStddevs);
 	tmpfn = "ref_means_stddvs.txt";
-	saveMeansStddvs(tmpfn, refMeans, refStddevs);*/
+	saveMeansStddvs(tmpfn, refMeans, refStddevs);
 	
+
+	//被遮挡，无匹配的区域使用Global的参数进行代替
+
 	for (int i = 0; i < regionum; ++i)
 	{
 		if (isMatched[i] == false)
 		{
-			srcMeans[i] = srcGLmeans; 
+			srcMeans[i] = srcGLmeans;
 			srcStddevs[i] = srcGLstddev;
 			refMeans[i] = refGLmeans;
 			refStddevs[i] = refGLstddev;
 		}
-	}
+	}	
 
-	vector<double> LFactors(regionum), AFactors(regionum), BFactors(regionum);
-	for (int i = 0; i < regionum; ++i)
-	{
-		LFactors[i] = refStddevs[i].val[0] / srcStddevs[i].val[0];
-		AFactors[i] = refStddevs[i].val[1] / srcStddevs[i].val[1];
-		BFactors[i] = refStddevs[i].val[2] / srcStddevs[i].val[2];
-	}
-
-	Mat msk (height, width, CV_8UC1, cv::Scalar(255));
 	Mat srcResultLab (height, width, CV_8UC3);
-	correct(srcLab, msk, srcGLmeans, srcGLstddev, refGLmeans, refGLstddev, srcResultLab);
+	Mat allmsk(height, width, CV_8UC1, cv::Scalar(255));
+	correct(srcLab, allmsk, srcGLmeans, srcGLstddev, refGLmeans, refGLstddev, srcResultLab);
+
 	for (int i = 0; i < regionum; ++i)
 	{
 		const vector<Point2f>& ppt = srcVisPointsTab[i];
-		
+		Mat msk = Mat::zeros(height, width, CV_8UC1);
+
 		pointsToMask(ppt, msk);
 		correct(srcLab, msk, srcMeans[i], srcStddevs[i], refMeans[i], refStddevs[i], srcResultLab);
 	}
