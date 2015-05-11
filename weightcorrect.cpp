@@ -177,8 +177,7 @@ void WeightedLocalColorCorrection(const Mat& src, const Mat& srcVis, const vecto
 	Mat msk = Mat::zeros(height, width, CV_8UC1);
 	pointsToMask(srcSpecPointsTab, msk);
 	imwrite(fn, msk);
-
-
+	
 	//处理specular points： weighted color correction, 权重函数！！！！！！！
 	for (int j = 0; j < srcSpecPointsTab.size(); ++j)
 	{
