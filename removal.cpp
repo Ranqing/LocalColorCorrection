@@ -1,16 +1,9 @@
 #include "function.h"
 
-void OutlierRemoval(vector<Point2i>& srcFeatures, vector<Point2i>& refFeatures, string dispFn/* = NULL*/)
+void OutlierRemoval(vector<Point2i>& srcFeatures, vector<Point2i>& refFeatures, const Mat srcDisp /* = Mat()*/)
 {
-	Mat disp = imread(dispFn, CV_LOAD_IMAGE_GRAYSCALE);
-	if (disp.data == NULL)
-	{
-		cout << "failed to open " << dispFn << endl;
-		return ;
-	}
-
-	int width = disp.size().width;
-	int height = disp.size().height;
+	int width = srcDisp.size().width;
+	int height = srcDisp.size().height;
 
 	int sz = srcFeatures.size();
 	for (int i = 0; i < sz; ++i)
@@ -25,7 +18,7 @@ void OutlierRemoval(vector<Point2i>& srcFeatures, vector<Point2i>& refFeatures, 
 		}
 		else
 		{
-			int rx = sx + disp.at<uchar>(sy, sx);
+			int rx = sx + srcDisp.at<uchar>(sy, sx);
 			int ry = sy;
 
 			refFeatures[i].x = rx;

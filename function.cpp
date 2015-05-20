@@ -30,6 +30,17 @@ void readFeatures(string fn, vector<Point2i>& features)
 	}
 }
 
+void showFeatures(const vector<Point2i>& features , const Mat& img, Mat& featuresImg, const cv::Scalar color /*= cv::Scalar(255,0,0)*/ )
+{
+	featuresImg = img.clone();
+
+	for (int i = 0; i < features.size(); ++i)
+	{
+		Point2i pt = features[i];
+		cv::circle(featuresImg, pt, 2, color);
+	}
+}
+
 void readMatches(string fn, vector<Point2i>& refFeatures, vector<Point2i>& srcFeatures, vector<vector<bool>>& istaken)
 {
 	fstream fin(fn.c_str(), ios::in);
@@ -92,6 +103,40 @@ void readLabels(string fn, vector<int>& labels, int& regionum)
 	regionum ++;
 
 	fin.close();
+}
+
+void saveValidImages(const Mat& srcImg, const Mat& refImg, const Mat& srcSegments, const Mat& srcVis, const Mat& refVis, const string& folder, const string& srcFn, const string& refFn )
+{
+	int width = srcImg.size().width;
+	int height = srcImg.size().height;
+
+	Mat validSrcImg , validRefImg, validSrcSegments;
+	Mat occSrcImg, occRefImg;
+	Mat srcValidMsk = Mat(height, width, CV_8UC1, cv::Scalar(255)) - srcVis;
+	Mat refValidMsk = Mat(height, width, CV_8UC1, cv::Scalar(255)) - refVis;
+
+	srcImg.copyTo(validSrcImg, srcValidMsk);
+	srcImg.copyTo(occSrcImg, srcVis);
+	refImg.copyTo(validRefImg, refValidMsk);
+	refImg.copyTo(occRefImg, refVis);
+
+	srcSegments.copyTo(validSrcSegments, srcValidMsk);
+
+	string savefn;
+
+	savefn = folder + "/valid_" + srcFn + ".png";
+	imwrite(savefn, validSrcImg);
+	savefn = folder + "/valid_" + refFn + ".png";
+	imwrite(savefn, validRefImg);
+	savefn = folder + "/valid_segments_" + srcFn + ".png";
+	imwrite(savefn, validSrcSegments);
+	savefn = folder + "/occluded_" + srcFn + ".png";
+	imwrite(savefn, occSrcImg);
+	savefn = folder + "/occluded_" + refFn + ".png";
+	imwrite(savefn, occRefImg);
+	cout << "save valid and occluded images done." << endl;
+
+	
 }
 
 void overlayTwoImages(const string& srcFn, const string& backFn, const double& alpha, string resultFn)

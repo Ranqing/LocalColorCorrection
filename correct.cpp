@@ -77,8 +77,9 @@ void correct(const Mat& src, const Mat& msk, const cv::Scalar& srcMean, const cv
 void LocalColorCorrection(const Mat& src, const Mat& srcVis, const vector<int>& srclabels, const Mat& ref, const Mat& refVis, const vector<int>& reflabels, const int& regionum, Mat& srcResult )	
 {
 	vector<vector<Point2f>> srcPointsTab(regionum);
-	vector<vector<Point2f>> srcVisPointsTab(regionum);
 	vector<vector<Point2f>> refPointsTab(regionum);
+
+	vector<vector<Point2f>> srcVisPointsTab(regionum);
 	vector<vector<Point2f>> refVisPointsTab(regionum);
 
 	int width = src.size().width;
@@ -87,6 +88,9 @@ void LocalColorCorrection(const Mat& src, const Mat& srcVis, const vector<int>& 
 	//用于计算color correction function
 	calPointsTab(srclabels, srcVis, srcVisPointsTab);	
 	calPointsTab(reflabels, refVis, refVisPointsTab);
+
+	calPointsTab(srclabels, width, height, srcPointsTab );
+	calPointsTab(reflabels, width, height, refPointsTab );
 
 	vector<bool> isMatched(regionum, true);
 	for (int i = 0; i < regionum; ++i)
@@ -123,7 +127,6 @@ void LocalColorCorrection(const Mat& src, const Mat& srcVis, const vector<int>& 
 	
 
 	//被遮挡，无匹配的区域使用Global的参数进行代替
-
 	for (int i = 0; i < regionum; ++i)
 	{
 		if (isMatched[i] == false)
@@ -137,11 +140,13 @@ void LocalColorCorrection(const Mat& src, const Mat& srcVis, const vector<int>& 
 
 	Mat srcResultLab (height, width, CV_8UC3);
 	Mat allmsk(height, width, CV_8UC1, cv::Scalar(255));
+	//GLobal结果
 	correct(srcLab, allmsk, srcGLmeans, srcGLstddev, refGLmeans, refGLstddev, srcResultLab);
 
 	for (int i = 0; i < regionum; ++i)
 	{
 		const vector<Point2f>& ppt = srcVisPointsTab[i];
+		//const vector<Point2f>& ppt = srcPointsTab[i];
 		Mat msk = Mat::zeros(height, width, CV_8UC1);
 
 		pointsToMask(ppt, msk);

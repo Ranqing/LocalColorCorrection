@@ -1,8 +1,5 @@
 #include "correspond.h"
 
-
-
-
 void computeTransforms(const vector<vector<Point2f>>& srcFeaturesTab, const vector<vector<Point2f>>& refFeaturesTab, vector<Mat>& transforms, vector<int>& isMatched)
 {
 	int regionum = transforms.size();
@@ -125,7 +122,7 @@ void computeRefLabels(const vector<vector<Point2f>>& refPointsTab, const int& wi
 
 //处理无匹配区域
 void FindRegionCorrespondence(const Mat& srcImg, const Mat& refImg, const vector<Point2i>& srcFeatures, const vector<Point2i>& refFeatures, const Mat& srcVisibility, const Mat& refVisibility,
-	const vector<int>& srcLabels, const int& regionum, vector<int>& refLabels)
+	const vector<int>& srcLabels, const int& regionum, vector<int>& refLabels, string resultFolder)
 {
 	vector<vector<Point2f>> srcFeaturesTab(regionum);
 	vector<vector<Point2f>> refFeaturesTab(regionum);
@@ -140,6 +137,33 @@ void FindRegionCorrespondence(const Mat& srcImg, const Mat& refImg, const vector
 		srcFeaturesTab[l].push_back(srcFeatures[i]);
 		refFeaturesTab[l].push_back(refFeatures[i]);	
 	}
+
+	//保存无匹配区域
+	vector<int> unmatchedIdx(0);
+	for (int i = 0; i < regionum; ++i)
+		if (srcFeaturesTab[i].size() == 0)
+		{
+			unmatchedIdx.push_back(i);
+		}
+	vector<vector<Point2f>> d_srcPointsTab(regionum);
+	calPointsTab(srcLabels, width, height, d_srcPointsTab);
+	
+	string fn;
+	Mat unmatchedMsk = Mat::zeros(height, width, CV_8UC1), unmatched;
+	cout << "unmatched regions: " << endl;
+	for (int i = 0; i < unmatchedIdx.size(); ++i)
+	{
+		int idx = unmatchedIdx[i];
+		cout << idx << ' ';
+		pointsToMask(d_srcPointsTab[idx], unmatchedMsk);
+	}
+	cout << endl;
+	fn = resultFolder + "/unmatched_regions_mask.png";
+	imwrite(fn, unmatchedMsk);
+	srcImg.copyTo(unmatched, unmatchedMsk);
+	fn = resultFolder + "/unmatched_regions.png";
+	imwrite(fn, unmatched);
+	
 
 	//每个区域的像素点
 	vector<vector<Point2f>> srcPointsTab(regionum);  //已知
@@ -346,10 +370,10 @@ void dealUnMatchedRegion(vector<int>& isMatched, vector<Mat>& transforms)
 	int regionum = transforms.size();
 
 	vector<int> nearIdx(regionum); 
-	int manualInfo[100] = {4,7,7,7,4,4,10,5,9,17,37,17,37,42,42,17,18,42,47,51,47,51} ; 
+	//int manualInfo[100] = {4,7,7,7,4,4,10,5,9,17,37,17,37,42,42,17,18,42,47,51,47,51} ; 
+	int manualInfo[100] = {4,7,7,7,11,6,10,5,9,17,37,17,37,42,42,39,44,51,47,51,51,51};
 
 	cout << "deal unmatched region manually." << endl;
-
 
 	//有匹配的就是自身
 	int cnt = 0;

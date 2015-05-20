@@ -1,16 +1,10 @@
 #include "correspond.h"
 
-//保存区域对应性结果
-void BackProjectToSource(const vector<int>& refLabels, const Mat& srcImg, const Mat& srcVis, const int& regionum, const string& dispFn, string backFn)
+//保存区域对应性结果: 将求解得到的ref的区域对应再反投影回来查看结果
+void BackProjectToSource(const vector<int>& refLabels, const Mat& srcImg, const Mat& srcVis, const int& regionum, const Mat& refDisp, Mat& srcBackSegments)
 {
-	Mat disp = imread(dispFn, CV_LOAD_IMAGE_GRAYSCALE);
-	if (disp.data == NULL)
-	{
-		cout << "failed to open " << dispFn << endl;
-		return ;
-	}
-	int width = disp.size().width;
-	int height = disp.size().height;
+	int width = refDisp.size().width;
+	int height = refDisp.size().height;
 	int sz = width * height;
 
 	vector<int> srcBackLabels(sz, -1);
@@ -19,7 +13,7 @@ void BackProjectToSource(const vector<int>& refLabels, const Mat& srcImg, const 
 	{
 		int x = i % width;
 		int y = i / width;
-		int d = disp.at<uchar>(y,x);
+		int d = refDisp.at<uchar>(y,x);
 		int l = refLabels[i];
 		if (l == -1)
 		{
@@ -74,27 +68,13 @@ void BackProjectToSource(const vector<int>& refLabels, const Mat& srcImg, const 
 		}
 	}
 	
-	Mat srcBackSegments;
+	/*Mat tsrcSegments;
+	calSegments(srcImg, regionum, srcBackLabels, tsrcSegments);
+	calContours(tsrcSegments, tsrcSegments, srcBackSegments);*/
 	calSegments(srcImg, regionum, srcBackLabels, srcBackSegments);
-	imwrite(backFn, srcBackSegments);
 }
 
-////Labels -> Points Table
-//void calPointsTab(vector<int> labels, int width, int height, vector<vector<Point2f>>& pointsTab)
-//{
-//	int sz = width * height;
-//	for (int i = 0; i < sz; ++i)
-//	{
-//		int l = labels[i];
-//		if (l == -1)
-//		{
-//			continue;
-//		}
-//		int x = i % width;
-//		int y = i / width;
-//		pointsTab[l].push_back(Point2f(x, y));
-//	}
-//}
+
 
 void Points2Mask(vector<Point2f> pts, Mat& msk)
 {
@@ -137,12 +117,16 @@ void saveRegions(Mat srcImg, Mat refImg, vector<vector<Point2f>> srcPointsTab, v
 		imwrite(fn, srcRegion);
 		fn = outfolder + "/" + prefix + "ref_region_" + type2string(i) + ".png";
 		imwrite(fn, refRegion);
+
+		string mskfn;
+		fn = outfolder + "/" + prefix + "src_mask_" + type2string(i) + ".png";
+		imwrite(fn, srcMsk);
 	}
 
 }
 
-void saveRegionCorrespondence(Mat refImg, Mat srcImg, Mat refVis, Mat srcVis, vector<int> refLabels, vector<int> srcLabels, int regionum,
-	string out_labelsFn, string out_segmentsFn, string out_contoursFn, string out_correspondFn, string out_correspondConFn) 
+void saveRegionCorrespondence(Mat refImg, Mat srcImg, Mat refVis, Mat srcVis, vector<int> refLabels, vector<int> srcLabels, int regionum, 
+	string out_labelsFn, string out_segmentsFn, string out_samecolorFn, string regionFolder /*= ""*/)
 {
 	int width = refImg.size().width;
 	int height = refImg.size().height;
@@ -150,37 +134,39 @@ void saveRegionCorrespondence(Mat refImg, Mat srcImg, Mat refVis, Mat srcVis, ve
 	saveLabels(out_labelsFn, width, height, refLabels);
 	
 	Mat refSegments; 
-	calSegments(refImg, regionum, refLabels, refSegments);
-
 	Mat refSegContours; //segments + contours;
+	
+	calSegments(refImg, regionum, refLabels, refSegments);
 	calContours(refSegments, refSegments, refSegContours);
 	imwrite(out_segmentsFn, refSegContours);
 
-	Mat refContours;   //refImg + contours;
-	calContours(refSegments, refImg, refContours);
-	imwrite(out_contoursFn, refContours);
-
-	cout << endl << "save regions correspondence in Build/output." << endl;
 	vector<vector<Point2f>> srcPointsTab(regionum);
 	vector<vector<Point2f>> refPointsTab(regionum);
 	calPointsTab(srcLabels, width, height, srcPointsTab);
 	calPointsTab(refLabels, width, height, refPointsTab);
-	saveRegions(srcImg, refImg, srcPointsTab, refPointsTab, "output", "");
-	
-	cout << endl << "save regions correspondence with visibility in Build/output." << endl;
+
 	vector<vector<Point2f>> srcVisPointsTab(regionum);
 	vector<vector<Point2f>> refVisPointsTab(regionum);
 	calPointsTab(srcLabels, srcVis, srcVisPointsTab);
 	calPointsTab(refLabels, refVis, refVisPointsTab);
-	saveRegions(srcImg, refImg, srcVisPointsTab, refVisPointsTab, "output", "vis_");
 
+	cout << "region folder = " <<  regionFolder << endl;
+	if (regionFolder != "")
+	{
+		cout << "save regions correspondence in " << regionFolder << endl;		
+		saveRegions(srcImg, refImg, srcPointsTab, refPointsTab, regionFolder, "");
+		
+		cout << "save regions correspondence with visibility in " << regionFolder << endl;
+		saveRegions(srcImg, refImg, srcVisPointsTab, refVisPointsTab, regionFolder, "vis_");
+	}
+	
 	//保存相同颜色的区域结果
-	cout << endl << "save corresponding regions" << endl;
 	Mat srcSegments;
 	vector<Scalar> srcColorTab;
-	calSegments(srcImg, srcPointsTab, srcSegments, srcColorTab);
+	calSegments(srcImg, srcPointsTab, srcSegments, srcColorTab); //计算得到每个区域的均值，并且颜色值放在srcColorTab
 	
-	Mat corrs_refSegments = Mat::zeros(height, width, CV_8UC3);
+	//same color segments 
+	Mat samecolor_refSegments = Mat::zeros(height, width, CV_8UC3); 
 	for (int i = 0; i < regionum; ++i)
 	{
 		vector<Point2f>& refPts = refPointsTab[i];
@@ -190,12 +176,10 @@ void saveRegionCorrespondence(Mat refImg, Mat srcImg, Mat refVis, Mat srcVis, ve
 		{
 			int x = refPts[j].x;
 			int y = refPts[j].y;
-			corrs_refSegments.at<Vec3b>(y,x) = Vec3b(srcColorTab[i].val[0],srcColorTab[i].val[1], srcColorTab[i].val[2]);
+			samecolor_refSegments.at<Vec3b>(y,x) = Vec3b(srcColorTab[i].val[0],srcColorTab[i].val[1], srcColorTab[i].val[2]);
 		}
 	}
-	imwrite(out_correspondFn, corrs_refSegments);
-
-	Mat corres_refContours = Mat::zeros(height, width, CV_8UC3);
-	calContours(corrs_refSegments, corrs_refSegments, corres_refContours);
-	imwrite(out_correspondConFn, corres_refContours);
+	Mat samecolor_refContours = Mat::zeros(height, width, CV_8UC3);
+	calContours(samecolor_refSegments, samecolor_refSegments, samecolor_refContours);
+	imwrite(out_samecolorFn, samecolor_refContours);
 }
